@@ -2,52 +2,42 @@
 <html lang="es">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>LifeXY — Welcome</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<title>LifeXY</title>
 <style>
   * { margin: 0; padding: 0; box-sizing: border-box; }
-  body {
-    min-height: 100vh;
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    background: #f0f0f0;
+  html, body {
+    height: 100%;
+    overflow: hidden;
+    touch-action: manipulation;
+    -webkit-tap-highlight-color: transparent;
     font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'Helvetica Neue', sans-serif;
   }
-  .phone {
-    width: 375px;
-    height: 812px;
-    border-radius: 40px;
+  body {
+    background: linear-gradient(165deg, #EAF5FD 0%, #D6EEFB 25%, #C0E5F9 50%, #D0EBFA 75%, #EDF7FE 100%);
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
     position: relative;
     overflow: hidden;
-    background: linear-gradient(165deg, #EAF5FD 0%, #D6EEFB 25%, #C0E5F9 50%, #D0EBFA 75%, #EDF7FE 100%);
-    box-shadow: 0 20px 60px rgba(0,0,0,0.15), 0 0 0 1px rgba(0,0,0,0.05);
   }
   canvas {
-    position: absolute;
+    position: fixed;
     top: 0; left: 0;
     width: 100%; height: 100%;
-  }
-  .notch {
-    position: absolute;
-    top: 16px; left: 0; right: 0;
-    display: flex;
-    justify-content: center;
-    z-index: 10;
-  }
-  .notch-inner {
-    width: 126px; height: 28px;
-    background: rgba(0,0,0,0.05);
-    border-radius: 14px;
+    z-index: 0;
   }
   .content {
-    position: absolute;
+    position: fixed;
     top: 0; left: 0; right: 0; bottom: 0;
     display: flex;
     flex-direction: column;
     justify-content: center;
     align-items: center;
-    padding: 60px 32px 48px;
+    padding: 60px 32px calc(env(safe-area-inset-bottom, 20px) + 32px);
     z-index: 2;
   }
   .logo-area {
@@ -69,6 +59,7 @@
   .logo .y { color: #5BA3D9; }
   .buttons {
     width: 100%;
+    max-width: 340px;
     display: flex;
     flex-direction: column;
     gap: 10px;
@@ -83,7 +74,9 @@
     overflow: hidden;
     -webkit-tap-highlight-color: transparent;
     user-select: none;
-    transition: transform 0.15s cubic-bezier(0.25, 0.46, 0.45, 0.94), box-shadow 0.15s ease;
+    transition: transform 0.12s cubic-bezier(0.25, 0.46, 0.45, 0.94), box-shadow 0.12s ease;
+    border: none;
+    outline: none;
   }
   .btn::before {
     content: '';
@@ -126,173 +119,183 @@
     position: relative;
     z-index: 1;
   }
+  .btn.pressed { transform: scale(0.95); }
   .privacy {
     text-align: center;
-    padding-top: 6px;
+    padding-top: 8px;
   }
   .privacy p {
     font-size: 11px;
     color: rgba(30, 70, 100, 0.25);
-    margin: 0;
   }
 </style>
 </head>
 <body>
 
-<div class="phone" id="phone">
-  <canvas id="helix"></canvas>
+<canvas id="helix"></canvas>
 
-  <div class="notch"><div class="notch-inner"></div></div>
+<div class="content">
+  <div class="logo-area">
+    <div class="logo">Life<span class="x">X</span><span class="y">Y</span></div>
+  </div>
 
-  <div class="content">
-    <div class="logo-area">
-      <div class="logo">Life<span class="x">X</span><span class="y">Y</span></div>
-    </div>
-
-    <div class="buttons">
-      <div class="btn btn-primary" id="btnStart"><span>Empezar</span></div>
-      <div class="btn btn-secondary" id="btnLogin"><span>Ya soy parte</span></div>
-      <div class="privacy"><p>Tus datos son tuyos. Siempre.</p></div>
-    </div>
+  <div class="buttons">
+    <div class="btn btn-primary" id="btnStart"><span>Empezar</span></div>
+    <div class="btn btn-secondary" id="btnLogin"><span>Ya soy parte</span></div>
+    <div class="privacy"><p>Tus datos son tuyos. Siempre.</p></div>
   </div>
 </div>
 
 <script>
-const canvas = document.getElementById('helix');
-const ctx = canvas.getContext('2d');
-const phone = document.getElementById('phone');
+var canvas = document.getElementById('helix');
+var ctx = canvas.getContext('2d');
+var dpr = window.devicePixelRatio || 2;
+var W, H;
 
-canvas.width = phone.offsetWidth * 2;
-canvas.height = phone.offsetHeight * 2;
-ctx.scale(2, 2);
-
-const W = phone.offsetWidth;
-const H = phone.offsetHeight;
-const particles = [];
-const count = 90;
-const helixCenterX = W / 2;
-const baseRadius = 55;
-const verticalSpacing = H / count * 2.2;
-const baseTwistSpeed = 0.003;
-
-let twistSpeed = baseTwistSpeed;
-let radiusBoost = 0;
-let expanding = false;
-
-for (let i = 0; i < count; i++) {
-  const strand = i % 2;
-  const pairIndex = Math.floor(i / 2);
-  particles.push({
-    baseY: pairIndex * verticalSpacing - H * 0.3,
-    phase: strand === 0 ? 0 : Math.PI,
-    pairIndex: pairIndex,
-    strand: strand,
-    size: 2 + Math.random() * 2.5,
-    opacity: 0.08 + Math.random() * 0.18,
-    drift: Math.random() * 0.3 - 0.15,
-  });
+function resize() {
+  W = window.innerWidth;
+  H = window.innerHeight;
+  canvas.width = W * dpr;
+  canvas.height = H * dpr;
+  canvas.style.width = W + 'px';
+  canvas.style.height = H + 'px';
+  ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
 }
+resize();
+window.addEventListener('resize', resize);
 
-const bridgeParticles = [];
-for (let i = 0; i < count / 2; i++) {
-  if (i % 3 === 0) {
-    const steps = 3 + Math.floor(Math.random() * 3);
-    for (let s = 0; s <= steps; s++) {
-      bridgeParticles.push({
-        pairIndex: i,
-        t: s / steps,
-        size: 1.2 + Math.random() * 1.2,
-        opacity: 0.04 + Math.random() * 0.08,
-        baseY: i * verticalSpacing - H * 0.3,
-      });
+var particles = [];
+var count = 100;
+var helixCenterX;
+var baseRadius;
+var verticalSpacing;
+var baseTwistSpeed = 0.003;
+var twistSpeed = baseTwistSpeed;
+var radiusBoost = 0;
+var expanding = false;
+var expandStrength = 0;
+
+function initParticles() {
+  helixCenterX = W / 2;
+  baseRadius = Math.min(W * 0.16, 65);
+  verticalSpacing = H / count * 2.4;
+  particles = [];
+  for (var i = 0; i < count; i++) {
+    var strand = i % 2;
+    var pairIndex = Math.floor(i / 2);
+    particles.push({
+      baseY: pairIndex * verticalSpacing - H * 0.3,
+      phase: strand === 0 ? 0 : Math.PI,
+      pairIndex: pairIndex,
+      size: 2.2 + Math.random() * 2.8,
+      opacity: 0.1 + Math.random() * 0.2,
+      drift: Math.random() * 0.3 - 0.15,
+    });
+  }
+  bridgeParticles = [];
+  for (var i = 0; i < count / 2; i++) {
+    if (i % 3 === 0) {
+      var steps = 3 + Math.floor(Math.random() * 3);
+      for (var s = 0; s <= steps; s++) {
+        bridgeParticles.push({
+          pairIndex: i,
+          t: s / steps,
+          size: 1.3 + Math.random() * 1.3,
+          opacity: 0.05 + Math.random() * 0.09,
+          baseY: i * verticalSpacing - H * 0.3,
+        });
+      }
     }
   }
 }
 
-let time = 0;
+var bridgeParticles = [];
+initParticles();
+
+var time = 0;
 
 function draw() {
   ctx.clearRect(0, 0, W, H);
   time += twistSpeed;
 
   if (expanding) {
-    twistSpeed += (0.012 - twistSpeed) * 0.08;
-    radiusBoost += (35 - radiusBoost) * 0.06;
+    expandStrength = Math.min(expandStrength + 0.04, 1);
   } else {
-    twistSpeed += (baseTwistSpeed - twistSpeed) * 0.03;
-    radiusBoost += (0 - radiusBoost) * 0.03;
+    expandStrength = Math.max(expandStrength - 0.015, 0);
   }
 
-  const currentRadius = baseRadius + radiusBoost;
+  twistSpeed = baseTwistSpeed + expandStrength * 0.015;
+  radiusBoost = expandStrength * 50;
 
-  particles.forEach(function(p) {
-    const y = p.baseY + time * 80 % (H * 1.6) - H * 0.1;
-    const wrappedY = ((y % (H * 1.6)) + H * 1.6) % (H * 1.6) - H * 0.1;
-    const angle = (p.pairIndex * 0.22) + time * 2 + p.phase;
-    const x = helixCenterX + Math.cos(angle) * currentRadius + p.drift * 10;
-    const depth = Math.sin(angle);
-    const sizeMultiplier = 0.7 + (depth + 1) * 0.25;
-    const opacityMultiplier = 0.5 + (depth + 1) * 0.35;
-    const edgeFade = 1 - Math.max(0, Math.min(1, (Math.abs(wrappedY - H / 2) - H * 0.3) / (H * 0.2)));
+  var currentRadius = baseRadius + radiusBoost;
+  var totalH = H * 1.6;
 
-    ctx.beginPath();
-    ctx.arc(x, wrappedY, p.size * sizeMultiplier, 0, Math.PI * 2);
-    ctx.fillStyle = 'rgba(30, 136, 195, ' + (p.opacity * opacityMultiplier * edgeFade) + ')';
-    ctx.fill();
-  });
-
-  bridgeParticles.forEach(function(bp) {
-    const y = bp.baseY + time * 80 % (H * 1.6) - H * 0.1;
-    const wrappedY = ((y % (H * 1.6)) + H * 1.6) % (H * 1.6) - H * 0.1;
-    const angle0 = (bp.pairIndex * 0.22) + time * 2;
-    const angle1 = angle0 + Math.PI;
-    const x0 = helixCenterX + Math.cos(angle0) * currentRadius;
-    const x1 = helixCenterX + Math.cos(angle1) * currentRadius;
-    const x = x0 + (x1 - x0) * bp.t;
-    const edgeFade = 1 - Math.max(0, Math.min(1, (Math.abs(wrappedY - H / 2) - H * 0.3) / (H * 0.2)));
+  for (var i = 0; i < particles.length; i++) {
+    var p = particles[i];
+    var y = p.baseY + time * 80 % totalH - H * 0.1;
+    var wrappedY = ((y % totalH) + totalH) % totalH - H * 0.1;
+    var angle = (p.pairIndex * 0.22) + time * 2 + p.phase;
+    var x = helixCenterX + Math.cos(angle) * currentRadius + p.drift * 10;
+    var depth = Math.sin(angle);
+    var sz = p.size * (0.7 + (depth + 1) * 0.25);
+    var op = p.opacity * (0.5 + (depth + 1) * 0.35);
+    var dist = Math.abs(wrappedY - H / 2);
+    var fade = dist < H * 0.32 ? 1 : Math.max(0, 1 - (dist - H * 0.32) / (H * 0.18));
 
     ctx.beginPath();
-    ctx.arc(x, wrappedY, bp.size, 0, Math.PI * 2);
-    ctx.fillStyle = 'rgba(80, 170, 230, ' + (bp.opacity * edgeFade) + ')';
+    ctx.arc(x, wrappedY, sz, 0, 6.283);
+    ctx.fillStyle = 'rgba(30,136,195,' + (op * fade) + ')';
     ctx.fill();
-  });
+  }
+
+  for (var j = 0; j < bridgeParticles.length; j++) {
+    var bp = bridgeParticles[j];
+    var by = bp.baseY + time * 80 % totalH - H * 0.1;
+    var bwY = ((by % totalH) + totalH) % totalH - H * 0.1;
+    var a0 = (bp.pairIndex * 0.22) + time * 2;
+    var a1 = a0 + Math.PI;
+    var bx = (helixCenterX + Math.cos(a0) * currentRadius) + ((helixCenterX + Math.cos(a1) * currentRadius) - (helixCenterX + Math.cos(a0) * currentRadius)) * bp.t;
+    var bdist = Math.abs(bwY - H / 2);
+    var bfade = bdist < H * 0.32 ? 1 : Math.max(0, 1 - (bdist - H * 0.32) / (H * 0.18));
+
+    ctx.beginPath();
+    ctx.arc(bx, bwY, bp.size, 0, 6.283);
+    ctx.fillStyle = 'rgba(80,170,230,' + (bp.opacity * bfade) + ')';
+    ctx.fill();
+  }
 
   requestAnimationFrame(draw);
 }
-
 draw();
 
 var btnStart = document.getElementById('btnStart');
 var btnLogin = document.getElementById('btnLogin');
 
-btnStart.addEventListener('pointerdown', function() {
-  btnStart.style.transform = 'scale(0.96)';
-  btnStart.style.boxShadow = '0 4px 16px rgba(30,136,195,0.25), inset 0 1px 0 rgba(255,255,255,0.5), inset 0 0 16px 6px rgba(255,255,255,0.2)';
+function startExpand() {
   expanding = true;
-});
-btnStart.addEventListener('pointerup', function() {
-  btnStart.style.transform = 'scale(1)';
-  btnStart.style.boxShadow = '0 8px 32px rgba(30,136,195,0.15), inset 0 1px 0 rgba(255,255,255,0.45), inset 0 -1px 0 rgba(255,255,255,0.1), inset 0 0 12px 4px rgba(255,255,255,0.15)';
-  setTimeout(function() { expanding = false; }, 600);
-});
-btnStart.addEventListener('pointerleave', function() {
-  btnStart.style.transform = 'scale(1)';
-  btnStart.style.boxShadow = '0 8px 32px rgba(30,136,195,0.15), inset 0 1px 0 rgba(255,255,255,0.45), inset 0 -1px 0 rgba(255,255,255,0.1), inset 0 0 12px 4px rgba(255,255,255,0.15)';
-  expanding = false;
-});
+  btnStart.classList.add('pressed');
+  btnStart.style.boxShadow = '0 4px 16px rgba(30,136,195,0.3), inset 0 1px 0 rgba(255,255,255,0.5), inset 0 0 16px 6px rgba(255,255,255,0.25)';
+}
 
-btnLogin.addEventListener('pointerdown', function() {
-  btnLogin.style.transform = 'scale(0.96)';
-  btnLogin.style.boxShadow = '0 4px 16px rgba(0,0,0,0.06), inset 0 1px 0 rgba(255,255,255,0.8), inset 0 0 16px 6px rgba(255,255,255,0.25)';
-});
-btnLogin.addEventListener('pointerup', function() {
-  btnLogin.style.transform = 'scale(1)';
-  btnLogin.style.boxShadow = '0 8px 32px rgba(0,0,0,0.04), inset 0 1px 0 rgba(255,255,255,0.7), inset 0 -1px 0 rgba(255,255,255,0.15), inset 0 0 12px 4px rgba(255,255,255,0.2)';
-});
-btnLogin.addEventListener('pointerleave', function() {
-  btnLogin.style.transform = 'scale(1)';
-  btnLogin.style.boxShadow = '0 8px 32px rgba(0,0,0,0.04), inset 0 1px 0 rgba(255,255,255,0.7), inset 0 -1px 0 rgba(255,255,255,0.15), inset 0 0 12px 4px rgba(255,255,255,0.2)';
-});
+function stopExpand() {
+  btnStart.classList.remove('pressed');
+  btnStart.style.boxShadow = '';
+  setTimeout(function() { expanding = false; }, 800);
+}
+
+btnStart.addEventListener('touchstart', function(e) { e.preventDefault(); startExpand(); }, {passive: false});
+btnStart.addEventListener('touchend', function(e) { e.preventDefault(); stopExpand(); }, {passive: false});
+btnStart.addEventListener('touchcancel', stopExpand);
+btnStart.addEventListener('mousedown', startExpand);
+btnStart.addEventListener('mouseup', stopExpand);
+btnStart.addEventListener('mouseleave', function() { expanding = false; btnStart.classList.remove('pressed'); btnStart.style.boxShadow = ''; });
+
+btnLogin.addEventListener('touchstart', function(e) { e.preventDefault(); btnLogin.classList.add('pressed'); btnLogin.style.boxShadow = '0 4px 16px rgba(0,0,0,0.08), inset 0 1px 0 rgba(255,255,255,0.8), inset 0 0 16px 6px rgba(255,255,255,0.3)'; }, {passive: false});
+btnLogin.addEventListener('touchend', function(e) { e.preventDefault(); btnLogin.classList.remove('pressed'); btnLogin.style.boxShadow = ''; }, {passive: false});
+btnLogin.addEventListener('touchcancel', function() { btnLogin.classList.remove('pressed'); btnLogin.style.boxShadow = ''; });
+btnLogin.addEventListener('mousedown', function() { btnLogin.classList.add('pressed'); btnLogin.style.boxShadow = '0 4px 16px rgba(0,0,0,0.08), inset 0 1px 0 rgba(255,255,255,0.8), inset 0 0 16px 6px rgba(255,255,255,0.3)'; });
+btnLogin.addEventListener('mouseup', function() { btnLogin.classList.remove('pressed'); btnLogin.style.boxShadow = ''; });
+btnLogin.addEventListener('mouseleave', function() { btnLogin.classList.remove('pressed'); btnLogin.style.boxShadow = ''; });
 </script>
 
 </body>
