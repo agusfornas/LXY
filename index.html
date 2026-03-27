@@ -1,0 +1,299 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>LifeXY — Welcome</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    min-height: 100vh;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    background: #f0f0f0;
+    font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'Helvetica Neue', sans-serif;
+  }
+  .phone {
+    width: 375px;
+    height: 812px;
+    border-radius: 40px;
+    position: relative;
+    overflow: hidden;
+    background: linear-gradient(165deg, #EAF5FD 0%, #D6EEFB 25%, #C0E5F9 50%, #D0EBFA 75%, #EDF7FE 100%);
+    box-shadow: 0 20px 60px rgba(0,0,0,0.15), 0 0 0 1px rgba(0,0,0,0.05);
+  }
+  canvas {
+    position: absolute;
+    top: 0; left: 0;
+    width: 100%; height: 100%;
+  }
+  .notch {
+    position: absolute;
+    top: 16px; left: 0; right: 0;
+    display: flex;
+    justify-content: center;
+    z-index: 10;
+  }
+  .notch-inner {
+    width: 126px; height: 28px;
+    background: rgba(0,0,0,0.05);
+    border-radius: 14px;
+  }
+  .content {
+    position: absolute;
+    top: 0; left: 0; right: 0; bottom: 0;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    padding: 60px 32px 48px;
+    z-index: 2;
+  }
+  .logo-area {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    text-align: center;
+  }
+  .logo {
+    font-size: 58px;
+    font-weight: 600;
+    color: #1A3A52;
+    letter-spacing: -2.5px;
+    line-height: 1;
+  }
+  .logo .x { color: #1E88C3; }
+  .logo .y { color: #5BA3D9; }
+  .buttons {
+    width: 100%;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+  }
+  .btn {
+    width: 100%;
+    padding: 16px;
+    border-radius: 50px;
+    text-align: center;
+    cursor: pointer;
+    position: relative;
+    overflow: hidden;
+    -webkit-tap-highlight-color: transparent;
+    user-select: none;
+    transition: transform 0.15s cubic-bezier(0.25, 0.46, 0.45, 0.94), box-shadow 0.15s ease;
+  }
+  .btn::before {
+    content: '';
+    position: absolute;
+    top: 0; left: 0; right: 0;
+    height: 1px;
+  }
+  .btn-primary {
+    background: rgba(30, 136, 195, 0.55);
+    backdrop-filter: blur(16px);
+    -webkit-backdrop-filter: blur(16px);
+    border: 1px solid rgba(255,255,255,0.35);
+    box-shadow: 0 8px 32px rgba(30,136,195,0.15), inset 0 1px 0 rgba(255,255,255,0.45), inset 0 -1px 0 rgba(255,255,255,0.1), inset 0 0 12px 4px rgba(255,255,255,0.15);
+  }
+  .btn-primary::before {
+    background: linear-gradient(90deg, transparent, rgba(255,255,255,0.7), transparent);
+  }
+  .btn-primary span {
+    font-size: 16px;
+    font-weight: 600;
+    color: #FFFFFF;
+    letter-spacing: 0.2px;
+    position: relative;
+    z-index: 1;
+  }
+  .btn-secondary {
+    background: rgba(255,255,255,0.25);
+    backdrop-filter: blur(16px);
+    -webkit-backdrop-filter: blur(16px);
+    border: 1px solid rgba(255,255,255,0.5);
+    box-shadow: 0 8px 32px rgba(0,0,0,0.04), inset 0 1px 0 rgba(255,255,255,0.7), inset 0 -1px 0 rgba(255,255,255,0.15), inset 0 0 12px 4px rgba(255,255,255,0.2);
+  }
+  .btn-secondary::before {
+    background: linear-gradient(90deg, transparent, rgba(255,255,255,0.8), transparent);
+  }
+  .btn-secondary span {
+    font-size: 16px;
+    font-weight: 500;
+    color: rgba(30, 70, 100, 0.6);
+    position: relative;
+    z-index: 1;
+  }
+  .privacy {
+    text-align: center;
+    padding-top: 6px;
+  }
+  .privacy p {
+    font-size: 11px;
+    color: rgba(30, 70, 100, 0.25);
+    margin: 0;
+  }
+</style>
+</head>
+<body>
+
+<div class="phone" id="phone">
+  <canvas id="helix"></canvas>
+
+  <div class="notch"><div class="notch-inner"></div></div>
+
+  <div class="content">
+    <div class="logo-area">
+      <div class="logo">Life<span class="x">X</span><span class="y">Y</span></div>
+    </div>
+
+    <div class="buttons">
+      <div class="btn btn-primary" id="btnStart"><span>Empezar</span></div>
+      <div class="btn btn-secondary" id="btnLogin"><span>Ya soy parte</span></div>
+      <div class="privacy"><p>Tus datos son tuyos. Siempre.</p></div>
+    </div>
+  </div>
+</div>
+
+<script>
+const canvas = document.getElementById('helix');
+const ctx = canvas.getContext('2d');
+const phone = document.getElementById('phone');
+
+canvas.width = phone.offsetWidth * 2;
+canvas.height = phone.offsetHeight * 2;
+ctx.scale(2, 2);
+
+const W = phone.offsetWidth;
+const H = phone.offsetHeight;
+const particles = [];
+const count = 90;
+const helixCenterX = W / 2;
+const baseRadius = 55;
+const verticalSpacing = H / count * 2.2;
+const baseTwistSpeed = 0.003;
+
+let twistSpeed = baseTwistSpeed;
+let radiusBoost = 0;
+let expanding = false;
+
+for (let i = 0; i < count; i++) {
+  const strand = i % 2;
+  const pairIndex = Math.floor(i / 2);
+  particles.push({
+    baseY: pairIndex * verticalSpacing - H * 0.3,
+    phase: strand === 0 ? 0 : Math.PI,
+    pairIndex: pairIndex,
+    strand: strand,
+    size: 2 + Math.random() * 2.5,
+    opacity: 0.08 + Math.random() * 0.18,
+    drift: Math.random() * 0.3 - 0.15,
+  });
+}
+
+const bridgeParticles = [];
+for (let i = 0; i < count / 2; i++) {
+  if (i % 3 === 0) {
+    const steps = 3 + Math.floor(Math.random() * 3);
+    for (let s = 0; s <= steps; s++) {
+      bridgeParticles.push({
+        pairIndex: i,
+        t: s / steps,
+        size: 1.2 + Math.random() * 1.2,
+        opacity: 0.04 + Math.random() * 0.08,
+        baseY: i * verticalSpacing - H * 0.3,
+      });
+    }
+  }
+}
+
+let time = 0;
+
+function draw() {
+  ctx.clearRect(0, 0, W, H);
+  time += twistSpeed;
+
+  if (expanding) {
+    twistSpeed += (0.012 - twistSpeed) * 0.08;
+    radiusBoost += (35 - radiusBoost) * 0.06;
+  } else {
+    twistSpeed += (baseTwistSpeed - twistSpeed) * 0.03;
+    radiusBoost += (0 - radiusBoost) * 0.03;
+  }
+
+  const currentRadius = baseRadius + radiusBoost;
+
+  particles.forEach(function(p) {
+    const y = p.baseY + time * 80 % (H * 1.6) - H * 0.1;
+    const wrappedY = ((y % (H * 1.6)) + H * 1.6) % (H * 1.6) - H * 0.1;
+    const angle = (p.pairIndex * 0.22) + time * 2 + p.phase;
+    const x = helixCenterX + Math.cos(angle) * currentRadius + p.drift * 10;
+    const depth = Math.sin(angle);
+    const sizeMultiplier = 0.7 + (depth + 1) * 0.25;
+    const opacityMultiplier = 0.5 + (depth + 1) * 0.35;
+    const edgeFade = 1 - Math.max(0, Math.min(1, (Math.abs(wrappedY - H / 2) - H * 0.3) / (H * 0.2)));
+
+    ctx.beginPath();
+    ctx.arc(x, wrappedY, p.size * sizeMultiplier, 0, Math.PI * 2);
+    ctx.fillStyle = 'rgba(30, 136, 195, ' + (p.opacity * opacityMultiplier * edgeFade) + ')';
+    ctx.fill();
+  });
+
+  bridgeParticles.forEach(function(bp) {
+    const y = bp.baseY + time * 80 % (H * 1.6) - H * 0.1;
+    const wrappedY = ((y % (H * 1.6)) + H * 1.6) % (H * 1.6) - H * 0.1;
+    const angle0 = (bp.pairIndex * 0.22) + time * 2;
+    const angle1 = angle0 + Math.PI;
+    const x0 = helixCenterX + Math.cos(angle0) * currentRadius;
+    const x1 = helixCenterX + Math.cos(angle1) * currentRadius;
+    const x = x0 + (x1 - x0) * bp.t;
+    const edgeFade = 1 - Math.max(0, Math.min(1, (Math.abs(wrappedY - H / 2) - H * 0.3) / (H * 0.2)));
+
+    ctx.beginPath();
+    ctx.arc(x, wrappedY, bp.size, 0, Math.PI * 2);
+    ctx.fillStyle = 'rgba(80, 170, 230, ' + (bp.opacity * edgeFade) + ')';
+    ctx.fill();
+  });
+
+  requestAnimationFrame(draw);
+}
+
+draw();
+
+var btnStart = document.getElementById('btnStart');
+var btnLogin = document.getElementById('btnLogin');
+
+btnStart.addEventListener('pointerdown', function() {
+  btnStart.style.transform = 'scale(0.96)';
+  btnStart.style.boxShadow = '0 4px 16px rgba(30,136,195,0.25), inset 0 1px 0 rgba(255,255,255,0.5), inset 0 0 16px 6px rgba(255,255,255,0.2)';
+  expanding = true;
+});
+btnStart.addEventListener('pointerup', function() {
+  btnStart.style.transform = 'scale(1)';
+  btnStart.style.boxShadow = '0 8px 32px rgba(30,136,195,0.15), inset 0 1px 0 rgba(255,255,255,0.45), inset 0 -1px 0 rgba(255,255,255,0.1), inset 0 0 12px 4px rgba(255,255,255,0.15)';
+  setTimeout(function() { expanding = false; }, 600);
+});
+btnStart.addEventListener('pointerleave', function() {
+  btnStart.style.transform = 'scale(1)';
+  btnStart.style.boxShadow = '0 8px 32px rgba(30,136,195,0.15), inset 0 1px 0 rgba(255,255,255,0.45), inset 0 -1px 0 rgba(255,255,255,0.1), inset 0 0 12px 4px rgba(255,255,255,0.15)';
+  expanding = false;
+});
+
+btnLogin.addEventListener('pointerdown', function() {
+  btnLogin.style.transform = 'scale(0.96)';
+  btnLogin.style.boxShadow = '0 4px 16px rgba(0,0,0,0.06), inset 0 1px 0 rgba(255,255,255,0.8), inset 0 0 16px 6px rgba(255,255,255,0.25)';
+});
+btnLogin.addEventListener('pointerup', function() {
+  btnLogin.style.transform = 'scale(1)';
+  btnLogin.style.boxShadow = '0 8px 32px rgba(0,0,0,0.04), inset 0 1px 0 rgba(255,255,255,0.7), inset 0 -1px 0 rgba(255,255,255,0.15), inset 0 0 12px 4px rgba(255,255,255,0.2)';
+});
+btnLogin.addEventListener('pointerleave', function() {
+  btnLogin.style.transform = 'scale(1)';
+  btnLogin.style.boxShadow = '0 8px 32px rgba(0,0,0,0.04), inset 0 1px 0 rgba(255,255,255,0.7), inset 0 -1px 0 rgba(255,255,255,0.15), inset 0 0 12px 4px rgba(255,255,255,0.2)';
+});
+</script>
+
+</body>
+</html>
